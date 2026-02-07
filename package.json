@@ -1,0 +1,15 @@
+{
+  "name": "devops-command-center",
+  "version": "1.0.0",
+  "description": "DevOps MultiBot Command Center with Smart OpenRouter Model Routing",
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "keywords": ["devops", "multibot", "openrouter", "smart-routing", "agent-orchestration", "n8n"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MasterPlayspots/devops-command-center.git"
+  },
+  "license": "MIT"
+}

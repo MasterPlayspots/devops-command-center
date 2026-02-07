@@ -1,0 +1,154 @@
+{
+  "routing_rules": {
+    "L3_micro_tasks": {
+      "tier": "free",
+      "models": [
+        "xiaomi/mimo-v2-flash",
+        "mistral/devstral-2-2512:free",
+        "nvidia/nemotron-3-nano:free"
+      ],
+      "max_tokens": 500,
+      "fallback": "deepseek/v3.2"
+    },
+    "L2_specialist": {
+      "tier": "ultra-low",
+      "models": [
+        "deepseek/v3.2",
+        "minimax/m2.1",
+        "mistral/devstral-2-2512"
+      ],
+      "max_tokens": 2000,
+      "fallback": "google/gemini-3-flash-preview"
+    },
+    "L1_role_agent": {
+      "tier": "budget",
+      "models": [
+        "google/gemini-3-flash-preview",
+        "bytedance/seed-1.6"
+      ],
+      "max_tokens": 4000,
+      "fallback": "anthropic/claude-sonnet-4"
+    },
+    "L0_orchestrator": {
+      "tier": "standard",
+      "models": [
+        "anthropic/claude-sonnet-4",
+        "openai/gpt-5.2",
+        "openai/gpt-5.3-codex"
+      ],
+      "max_tokens": 3000,
+      "fallback": "anthropic/claude-opus-4.6"
+    },
+    "critical_review": {
+      "tier": "premium",
+      "models": [
+        "anthropic/claude-opus-4.6",
+        "openai/gpt-5.2-pro"
+      ],
+      "max_tokens": 5000,
+      "fallback": null
+    }
+  },
+  "openrouter_endpoint": "https://openrouter.ai/api/v1/chat/completions",
+  "agent_model_mapping": {
+    "orchestrator": "standard",
+    "product": "budget",
+    "architect": "standard",
+    "backend": "ultra-low",
+    "frontend": "ultra-low",
+    "qa": "budget",
+    "devops": "ultra-low"
+  },
+  "cost_optimization": {
+    "deterministic_bypass": true,
+    "auto_retry_on_failure": true,
+    "upgrade_on_low_quality": true,
+    "target_free_percentage": 70,
+    "target_ultra_low_percentage": 20,
+    "target_premium_percentage": 10
+  },
+  "n8n_workflow_template": {
+    "name": "Smart-Model-Router",
+    "nodes": [
+      {
+        "name": "Webhook Trigger",
+        "type": "n8n-nodes-base.webhook",
+        "parameters": {
+          "path": "smart-router",
+          "method": "POST"
+        }
+      },
+      {
+        "name": "Classify Complexity",
+        "type": "n8n-nodes-base.switch",
+        "parameters": {
+          "rules": [
+            { "value": "L3", "output": 0 },
+            { "value": "L2", "output": 1 },
+            { "value": "L1", "output": 2 },
+            { "value": "L0", "output": 3 },
+            { "value": "critical", "output": 4 }
+          ]
+        }
+      },
+      {
+        "name": "Route to Free Model",
+        "type": "n8n-nodes-base.httpRequest",
+        "parameters": {
+          "method": "POST",
+          "url": "https://openrouter.ai/api/v1/chat/completions",
+          "headers": {
+            "Authorization": "Bearer {{ $credentials.openrouter_api_key }}",
+            "Content-Type": "application/json"
+          },
+          "body": {
+            "model": "xiaomi/mimo-v2-flash",
+            "messages": "={{ $json.messages }}"
+          }
+        }
+      },
+      {
+        "name": "Route to Ultra-Low Model",
+        "type": "n8n-nodes-base.httpRequest",
+        "parameters": {
+          "method": "POST",
+          "url": "https://openrouter.ai/api/v1/chat/completions",
+          "body": {
+            "model": "deepseek/v3.2",
+            "messages": "={{ $json.messages }}"
+          }
+        }
+      },
+      {
+        "name": "Route to Budget Model",
+        "type": "n8n-nodes-base.httpRequest",
+        "parameters": {
+          "body": {
+            "model": "google/gemini-3-flash-preview",
+            "messages": "={{ $json.messages }}"
+          }
+        }
+      },
+      {
+        "name": "Route to Standard Model",
+        "type": "n8n-nodes-base.httpRequest",
+        "parameters": {
+          "body": {
+            "model": "anthropic/claude-sonnet-4",
+            "messages": "={{ $json.messages }}"
+          }
+        }
+      },
+      {
+        "name": "Route to Premium Model",
+        "type": "n8n-nodes-base.httpRequest",
+        "parameters": {
+          "body": {
+            "model": "anthropic/claude-opus-4.6",
+            "messages": "={{ $json.messages }}"
+          }
+        }
+      }
+    ]
+  }
+}
