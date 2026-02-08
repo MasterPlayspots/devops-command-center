@@ -1,0 +1,17 @@
+name = "devops-command-center"
+compatibility_date = "2026-02-07"
+pages_build_output_dir = "./dist"
+
+# ─── KV Namespaces ────────────────────────────────────
+[[kv_namespaces]]
+binding = "CREDENTIALS_STORE"
+id = "fa11779d3f694d1e955ed0c5ea9f7c38"
+
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "12dab5ab85e2454389e7b56df80035f4"
+
+# ─── Environment Variables ────────────────────────────
+[vars]
+ENVIRONMENT = "production"
+API_UPSTREAM = "cf-ai-workspace.ourark.workers.dev"

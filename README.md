@@ -1,28 +1,16 @@
 # DevOps MultiBot Command Center
 
-Universal smart model routing and multi-agent orchestration via OpenRouter.
+Universal smart model routing and multi-agent orchestration via OpenRouter. Deployed on Cloudflare Pages, backed by Cloudflare Workers + D1 + KV.
 
 ## Features
 
-- **16 OpenRouter models** with tiered pricing (Free → Premium)
-- **Smart routing**: L3→Free, L2→Ultra-Low, L1→Budget, L0→Standard, Critical→Premium
-- **Agent fleet management** (7 core agents, 187 total hierarchy)
-- **Kanban task board** with agent assignment
-- **Reverse learning** knowledge capture
-- **Skill progression tracking**
-- **Cloudflare infrastructure** status panel
-- **Persistent storage** across sessions
-- **Cost simulator** with monthly projections
-
-## File Structure
-
-```
-devops-command-center/
-├── README.md
-├── DevOpsCommandCenter.tsx    ← Main React component
-├── package.json               ← Dependencies
-└── models-config.json         ← OpenRouter model catalog & n8n workflow
-```
+- **16 OpenRouter models** with tiered pricing (Free to Premium)
+- **Smart routing**: L3 Free, L2 Ultra-Low, L1 Budget, L0 Standard, Critical Premium
+- **Agent fleet management** (7 core agents with model mapping)
+- **Kanban task board** with agent assignment and persistent storage
+- **Cloudflare infrastructure** status panel (Workers, D1, KV)
+- **Cost simulator** with monthly projections and tier breakdowns
+- **Real-time dashboard** with auto-refresh from Worker API
 
 ## Quick Start
 
@@ -30,7 +18,38 @@ devops-command-center/
 git clone https://github.com/MasterPlayspots/devops-command-center.git
 cd devops-command-center
 npm install
-# Import DevOpsCommandCenter.tsx into your React app
+npm run dev
+```
+
+## Deploy to Cloudflare Pages
+
+**Option A: GitHub Integration (Recommended)**
+
+1. Connect repo in Cloudflare Dashboard > Workers & Pages > Create > Pages > Git
+2. Build settings: `npm run build` / Output: `dist`
+
+**Option B: Direct Deploy**
+
+```bash
+export CLOUDFLARE_API_TOKEN=your-token
+npm run deploy
+```
+
+## Architecture
+
+```
+devops-command-center/
+├── src/
+│   ├── DevOpsCommandCenter.tsx  <- Main React component (7 tabs)
+│   ├── App.tsx                  <- App wrapper
+│   └── main.tsx                 <- Entry point
+├── public/
+│   ├── _headers                 <- Security headers (CSP, X-Frame, etc.)
+│   └── _redirects               <- SPA routing
+├── models-config.json           <- OpenRouter model catalog & n8n workflow
+├── vite.config.ts               <- Vite build config
+├── wrangler.toml                <- Cloudflare Pages config
+└── package.json                 <- Dependencies & scripts
 ```
 
 ## Model Routing Tiers
@@ -43,7 +62,7 @@ npm install
 | L0 | Standard | Orchestrator | anthropic/claude-sonnet-4, openai/gpt-5.2 |
 | Critical | Premium | Review | anthropic/claude-opus-4.6, openai/gpt-5.2-pro |
 
-## Agent → Model Mapping
+## Agent Model Mapping
 
 | Agent | Default Tier |
 |-------|-------------|
@@ -64,6 +83,12 @@ npm install
 ## n8n Integration
 
 The `models-config.json` includes a complete n8n Smart-Model-Router workflow template with webhook trigger, complexity classifier, and per-tier HTTP request nodes for OpenRouter.
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `VITE_API_BASE` | Worker API URL (default: `https://cf-ai-workspace.ourark.workers.dev`) |
 
 ## License
 

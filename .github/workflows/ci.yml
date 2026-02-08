@@ -1,0 +1,108 @@
+name: CI — Quality Gate & Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  # ─── Quality Gate ──────────────────────────────────
+  quality:
+    name: TypeCheck + Lint + Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npx tsc -b
+
+      - name: ESLint
+        run: npx eslint . --max-warnings 0
+        continue-on-error: true
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify no API-URL leak in bundle
+        run: |
+          if grep -r "cf-ai-workspace" dist/; then
+            echo "::error::Worker-URL leaked into client bundle!"
+            exit 1
+          fi
+          echo "✅ No API URL leak detected"
+
+      - name: Upload build artifact
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 1
+
+  # ─── Security Audit ────────────────────────────────
+  security:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: npm audit
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+  # ─── Deploy to Cloudflare Pages ────────────────────
+  deploy:
+    name: Deploy to Cloudflare Pages
+    needs: quality
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=devops-command-center --commit-dirty=true
+
+      - name: Verify deployment
+        run: |
+          echo "Waiting for deployment to propagate..."
+          sleep 15
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://devops-command-center.pages.dev/)
+          echo "HTTP Status: $STATUS"
+          if [ "$STATUS" -lt 200 ] || [ "$STATUS" -ge 400 ]; then
+            echo "::warning::Deployment returned HTTP $STATUS — may need manual verification"
+          else
+            echo "✅ Deployment verified: HTTP $STATUS"
+          fi
